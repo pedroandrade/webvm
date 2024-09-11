@@ -9,6 +9,7 @@ RUN apt-get -y install apt-utils gcc \
 	less cowsay netcat-openbsd net-tools \
   curl wget
 RUN useradd -m user && echo "user:password" | chpasswd
+COPY wg-in-browser /bin/networking
 COPY --chown=user:user ./examples /home/user/examples
 RUN chmod -R +x  /home/user/examples/lua
 # We set WORKDIR, as this gets extracted by Webvm to be used as the cwd. This is optional.
