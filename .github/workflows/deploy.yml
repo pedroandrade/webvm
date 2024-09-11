@@ -35,21 +35,21 @@ jobs:
 
   guard_clause:
       runs-on: ubuntu-latest
-  
+
       env:
-        GH_TOKEN: ${{ github.token }} # As required by the GitHub-CLI  
+        GH_TOKEN: ${{ github.token }} # As required by the GitHub-CLI
 
       permissions:
         actions: 'write' # Required in order to terminate the workflow run.
-  
+
       steps:
         - uses: actions/checkout@v3
-        # Guard clause that cancels the workflow in case of an invalid DOCKERFILE_PATH and/or incorrectly configured Github Pages. 
+        # Guard clause that cancels the workflow in case of an invalid DOCKERFILE_PATH and/or incorrectly configured Github Pages.
         # The main reason for choosing this workaround for aborting the workflow is the fact that it does not display the workflow as successful, which can set false expectations.
         - name: DOCKERFILE_PATH.
           shell: bash
           run: |
-            # We check whether the Dockerfile_path is valid. 
+            # We check whether the Dockerfile_path is valid.
             if [ ! -f ${{ github.event.inputs.DOCKERFILE_PATH }} ]; then
                 echo "::error title=Invalid Dockerfile path::No file found at ${{ github.event.inputs.DOCKERFILE_PATH }}"
                 echo "terminate=true" >> $GITHUB_ENV
@@ -114,7 +114,7 @@ jobs:
 
       # Build the i386 Dockerfile image.
       - run: docker build . --tag $TAG --file ${{ github.event.inputs.DOCKERFILE_PATH }} --platform=i386
-      
+
       # Run the docker image so that we can export the container.
       # Run the Docker container with the Google Public DNS nameservers: 8.8.8.8, 8.8.4.4
       - run: |
@@ -159,14 +159,14 @@ jobs:
       # However, it's important to note that despite being specified in the documentation, the '--archive' flag does not currently preserve uid/gid information when copying files from the container to the host machine.
       # Another compelling reason to use 'docker cp' is that it preserves resolv.conf.
       - name: Export and unpack container filesystem contents into mounted ext2 image.
-        run: | 
+        run: |
           sudo docker cp -a ${CONTAINER_ID}:/ /mnt/
           sudo umount /mnt/
       # Result is an ext2 image for webvm.
 
       # Move required files for gh-pages deployment to the deployment directory $DEPLOY_DIR.
       - run: sudo mv assets examples xterm favicon.ico index.html login.html network.js scrollbar.css serviceWorker.js tower.ico $DEPLOY_DIR
-      
+
       # The .txt suffix enabled HTTP compression for free
       - name: Generate image split chunks and .meta file
         run: |
@@ -196,8 +196,8 @@ jobs:
             index_list="$dir/index.list";
             sudo rm -f "$index_list";
             sudo ls "$dir" | sudo tee "$index_list" > /dev/null;
-            sudo chmod +rw "$index_list";     
-            sudo echo "created $index_list"; 
+            sudo chmod +rw "$index_list";
+            sudo echo "created $index_list";
           done
 
       # Create a gh-pages artifact in order to deploy to gh-pages.
@@ -216,22 +216,3 @@ jobs:
           fail_on_unmatched_files: 'true' # Fail in case of no matches with the file(s) glob(s).
           files: | # Assets to upload as release.
             ${{ env.IMAGE_NAME }}
-
-  deploy_to_github_pages: # Job that deploys the github-pages artifact to github-pages.
-    if: ${{ github.event.inputs.DEPLOY_TO_GITHUB_PAGES == 'true' }}
-    needs: build
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
-    permissions:
-      pages: write      # to deploy to Pages
-      id-token: write   # to verify the deployment originates from an appropriate source
-
-    runs-on: ubuntu-latest
-    steps:
-      # Deployment to github pages
-      - name: Deploy GitHub Pages site
-        id: deployment
-        uses: actions/deploy-pages@v3
